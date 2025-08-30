@@ -60,8 +60,8 @@ class CLD(nn.Module):
         if t[0].item()<0.1:
             G_inv = self.m_inv
 
-        beta = add_dimensions(8*torch.sqrt(G), self.config.is_image)
-        f = add_dimensions(2*torch.sqrt(G), self.config.is_image)
+        beta = add_dimensions(8 * torch.sqrt(G), self.config.is_image)
+        f = add_dimensions(2 * torch.sqrt(G), self.config.is_image)
 
         drift_x = G_inv * beta * v
         drift_v = -beta * x - f * G_inv * beta * v
@@ -72,7 +72,7 @@ class CLD(nn.Module):
         return torch.cat((drift_x, drift_v), dim=1), torch.cat((diffusion_x, diffusion_v), dim=1)
 
     def get_reverse_sde(self, score_fn=None, probability_flow=False):
-        sde_fn = self.rie_sde
+        sde_fn = self.sde
 
         def reverse_sde(u, t, score=None):
             '''
