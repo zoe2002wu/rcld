@@ -36,7 +36,6 @@ class CLD(nn.Module):
         '''
         Evaluating drift and diffusion of the SDE.
         '''
-        print("Regular")
         
         x, v = torch.chunk(u, 2, dim=1)
 
@@ -54,7 +53,6 @@ class CLD(nn.Module):
         '''
         Evaluating drift and diffusion of the SDE.
         '''
-        print("Riemannian")
 
         x, v = torch.chunk(u, 2, dim=1)
 
