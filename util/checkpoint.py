@@ -23,7 +23,7 @@ def restore_checkpoint(ckpt_dir, state, device):
         try:
             state['step'] = int(loaded_state['step'])
         except:
-            print("No step provided in checkpoint. Eval will continue as is.")
+            state['step'] = 800000 #placeholder
         return state
 
 
