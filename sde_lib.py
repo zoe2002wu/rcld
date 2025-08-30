@@ -35,6 +35,8 @@ class CLD(nn.Module):
         '''
         Evaluating drift and diffusion of the SDE.
         '''
+        print("Regular")
+        
         x, v = torch.chunk(u, 2, dim=1)
 
         beta = add_dimensions(self.beta_fn(t), self.config.is_image)
@@ -51,6 +53,8 @@ class CLD(nn.Module):
         '''
         Evaluating drift and diffusion of the SDE.
         '''
+        print("Riemannian")
+
         x, v = torch.chunk(u, 2, dim=1)
 
         var_xx, var_xv, var_vv = var_constant(t[0].item())
