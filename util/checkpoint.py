@@ -20,7 +20,7 @@ def restore_checkpoint(ckpt_dir, state, device):
         try:
             state['optimizer'].load_state_dict(loaded_state['optimizer'])
         except:
-            print("No optimizer information. Will continue runninge eval.")
+            print("No optimizer information. Will continue running eval.")
         state['model'].load_state_dict(loaded_state['model'], strict=False)
         state['ema'].load_state_dict(loaded_state['ema'])
         try:

@@ -20,7 +20,7 @@ import torch.nn as nn
 import numpy as np
 import functools
 from util.strings import string_to_list, string_to_tuple
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 
 from . import utils, layers, layerspp, normalization
 ResnetBlockDDPM = layerspp.ResnetBlockDDPMpp
