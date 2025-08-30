@@ -47,8 +47,27 @@ class CLD(nn.Module):
 
         return torch.cat((drift_x, drift_v), dim=1), torch.cat((diffusion_x, diffusion_v), dim=1)
 
+    def rie_sde(self, u, t):
+        '''
+        Evaluating drift and diffusion of the SDE.
+        '''
+        x, v = torch.chunk(u, 2, dim=1)
+
+        #new G
+        #beta and Gamma change
+
+        beta = add_dimensions(self.beta_fn(t), self.config.is_image)
+
+        drift_x = self.m_inv * beta * v
+        drift_v = -beta * x - self.f * self.m_inv * beta * v
+
+        diffusion_x = torch.zeros_like(x)
+        diffusion_v = torch.sqrt(2. * self.f * beta) * torch.ones_like(v)
+
+        return torch.cat((drift_x, drift_v), dim=1), torch.cat((diffusion_x, diffusion_v), dim=1)
+
     def get_reverse_sde(self, score_fn=None, probability_flow=False):
-        sde_fn = self.sde
+        sde_fn = self.rie_sde
 
         def reverse_sde(u, t, score=None):
             '''
@@ -117,6 +136,32 @@ class CLD(nn.Module):
             var0v = add_dimensions(var0v, self.config.is_image)
 
         beta_int = add_dimensions(self.beta_int_fn(t), self.config.is_image)
+        multiplier = torch.exp(-4. * beta_int * self.g)
+
+        var_xx = var0x + (1. / multiplier) - 1. + 4. * beta_int * self.g * (var0x - 1.) + 4. * \
+            beta_int ** 2. * self.g ** 2. * \
+            (var0x - 2.) + 16. * self.g ** 4. * beta_int ** 2. * var0v
+        var_xv = -var0x * beta_int + 4. * self.g ** 2. * beta_int * var0v - 2. * self.g * \
+            beta_int ** 2. * (var0x - 2.) - 8. * \
+            self.g ** 3. * beta_int ** 2. * var0v
+        var_vv = self.f ** 2. * ((1. / multiplier) - 1.) / 4. + self.f * beta_int - 4. * self.g * beta_int * \
+            var0v + 4. * self.g ** 2. * beta_int ** 2. * \
+            var0v + var0v + beta_int ** 2. * (var0x - 2.)
+        return [var_xx * multiplier + self.numerical_eps, var_xv * multiplier, var_vv * multiplier + self.numerical_eps]
+
+    def var_constant(self, t, var0x=None, var0v=None):
+        '''
+        Evaluating the variance of the conditional perturbation kernel.
+        '''
+        if var0x is None:
+            var0x = 0
+        if var0v is None:
+            if self.config.cld_objective == 'dsm':
+                var0v = 0
+            elif self.config.cld_objective == 'hsm':
+                var0v = self.gamma / self.m_inv
+
+        beta_int = self.beta_int_fn(t)
         multiplier = torch.exp(-4. * beta_int * self.g)
 
         var_xx = var0x + (1. / multiplier) - 1. + 4. * beta_int * self.g * (var0x - 1.) + 4. * \
