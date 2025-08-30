@@ -55,8 +55,10 @@ class CLD(nn.Module):
 
         var_xx, var_xv, var_vv = var_constant(t[0].item())
         det = var_xx * var_vv - var_xv**2
-        G = (var_vv**2 + var_xv**2) / det
-        G_inv = 1 / G
+        G_inv = det / (var_vv**2 + var_xv**2) 
+
+        if t[0].item()<0.1:
+            G_inv = self.m_inv
 
         beta = add_dimensions(8*torch.sqrt(G), self.config.is_image)
         f = add_dimensions(2*torch.sqrt(G), self.config.is_image)
