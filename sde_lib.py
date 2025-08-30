@@ -135,7 +135,7 @@ class CLD(nn.Module):
 
     def noise_multiplier(self, t, var0x=None, var0v=None):
         '''
-        Evaluating the -\ell_t multiplier. Similar to -1/standard deviaton in VPSDE.
+        Evaluating the -ell_t multiplier. Similar to -1/standard deviaton in VPSDE.
         '''
         var = self.var(t, var0x, var0v)
         coeff = torch.sqrt(var[0] / (var[0] * var[2] - var[1]**2))
@@ -155,7 +155,7 @@ class CLD(nn.Module):
         '''
         Perturbing data according to conditional perturbation kernel with initial variances
         var0x and var0v. Var0x is generally always 0, whereas var0v is 0 for DSM and 
-        \gamma * M for HSM.
+        gamma * M for HSM.
         '''
         mean, var = self.mean_and_var(batch, t, var0x, var0v)
 
