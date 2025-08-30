@@ -13,7 +13,7 @@ import torchvision.transforms as transforms
 from util.lmdb_datasets import LMDBDataset
 from thirdparty.lsun import LSUN, LSUNClass
 import os
-from torch._utils import _accumulate
+from itertools import accumulate as _accumulate
 
 
 class CropCelebA64(object):
