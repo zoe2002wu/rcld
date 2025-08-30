@@ -241,7 +241,7 @@ class NCSNpp(nn.Module):
 
         x = input
 
-        with autocast(False):
+        with autocast(device_type="cuda", enabled=False):
             if self.embedding_type == 'fourier':
                 temb = modules[m_idx](torch.log(t))
                 m_idx += 1
