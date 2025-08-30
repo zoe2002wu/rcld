@@ -82,8 +82,6 @@ class CLD(nn.Module):
         elif self.riemann == False:
             sde_fn = self.sde
 
-        print(self.riemann)
-
         def reverse_sde(u, t, score=None):
             '''
             Evaluating drift and diffusion of the ReverseSDE.
