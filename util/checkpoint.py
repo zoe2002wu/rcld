@@ -17,13 +17,16 @@ def restore_checkpoint(ckpt_dir, state, device):
         return state
     else:
         loaded_state = torch.load(ckpt_dir, map_location=device, weights_only=False)
-        state['optimizer'].load_state_dict(loaded_state['optimizer'])
+        try:
+            state['optimizer'].load_state_dict(loaded_state['optimizer'])
+        except:
+            print("No optimizer information. Will continue runninge eval.")
         state['model'].load_state_dict(loaded_state['model'], strict=False)
         state['ema'].load_state_dict(loaded_state['ema'])
         try:
             state['step'] = int(loaded_state['step'])
         except:
-            state['step'] = 800000 #placeholder
+            print("No step imformation. Will continue runninge eval.")
         return state
 
 
