@@ -225,6 +225,9 @@ if __name__ == '__main__':
     p.add('--striding', choices=['linear', 'quadratic'], default='linear')
     p.add('--sampling_eps', type=float)
 
+    # Riemann
+    p.add('--riemann', action='store_true')
+
     # Likelihood
     p.add('--likelihood_solver', default='scipy_solver')
     p.add('--likelihood_solver_options',
