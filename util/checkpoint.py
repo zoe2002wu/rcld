@@ -20,7 +20,10 @@ def restore_checkpoint(ckpt_dir, state, device):
         state['optimizer'].load_state_dict(loaded_state['optimizer'])
         state['model'].load_state_dict(loaded_state['model'], strict=False)
         state['ema'].load_state_dict(loaded_state['ema'])
-        state['step'] = loaded_state['step']
+        try:
+            state['step'] = int(loaded_state['step'])
+        except:
+            print("No step provided in checkpoint. Eval will continue as is.")
         return state
 
 
