@@ -53,16 +53,19 @@ class CLD(nn.Module):
         '''
         x, v = torch.chunk(u, 2, dim=1)
 
-        #new G
-        #beta and Gamma change
+        var_xx, var_xv, var_vv = var_constant(t[0].item())
+        det = var_xx * var_vv - var_xv**2
+        G = (var_vv**2 + var_xv**2) / det
+        G_inv = 1 / G
 
-        beta = add_dimensions(self.beta_fn(t), self.config.is_image)
+        beta = add_dimensions(8*torch.sqrt(G), self.config.is_image)
+        f = add_dimensions(2*torch.sqrt(G), self.config.is_image)
 
-        drift_x = self.m_inv * beta * v
-        drift_v = -beta * x - self.f * self.m_inv * beta * v
+        drift_x = G_inv * beta * v
+        drift_v = -beta * x - f * G_inv * beta * v
 
         diffusion_x = torch.zeros_like(x)
-        diffusion_v = torch.sqrt(2. * self.f * beta) * torch.ones_like(v)
+        diffusion_v = torch.sqrt(2. * f * beta) * torch.ones_like(v)
 
         return torch.cat((drift_x, drift_v), dim=1), torch.cat((diffusion_x, diffusion_v), dim=1)
 
