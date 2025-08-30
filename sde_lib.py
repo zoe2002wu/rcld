@@ -22,6 +22,7 @@ class CLD(nn.Module):
         self.g = 1. / self.f
         self.gamma = config.gamma
         self.numerical_eps = config.numerical_eps
+        self.riemann = config.riemann
 
     @property
     def type(self):
@@ -76,7 +77,10 @@ class CLD(nn.Module):
         return torch.cat((drift_x, drift_v), dim=1), torch.cat((diffusion_x, diffusion_v), dim=1)
 
     def get_reverse_sde(self, score_fn=None, probability_flow=False):
-        sde_fn = self.sde
+        if self.riemann == True:
+            sde_fn = self.rie_sde
+        elif self.riemann == False:
+            sde_fn = self.sde
 
         def reverse_sde(u, t, score=None):
             '''
