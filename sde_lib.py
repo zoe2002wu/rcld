@@ -61,6 +61,7 @@ class CLD(nn.Module):
         G_inv = 1 / G
 
         if t[0].item()<0.1:
+            G = (1/self.m_inv) * torch.ones_like(t)
             G_inv = self.m_inv * torch.ones_like(t)
 
         beta = add_dimensions(8 * torch.sqrt(G), self.config.is_image)
