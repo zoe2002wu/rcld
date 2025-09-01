@@ -59,6 +59,7 @@ class CLD(nn.Module):
         var_xx, var_xv, var_vv = self.var_constant(t[0])
         det = var_xx * var_vv - var_xv**2
         G = (var_vv**2 + var_xv**2) / det
+        G = G.mean().item()
         G_inv = 1 / G
 
         if t[0].item()<0.1:
