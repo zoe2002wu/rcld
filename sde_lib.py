@@ -82,7 +82,7 @@ class CLD(nn.Module):
 
     def get_reverse_sde(self, score_fn=None, probability_flow=False):
         if self.config.riemann == "rie":
-            print("Running Riemann")
+            print("Running Riem")
             sde_fn = self.rie_sde
         elif self.config.riemann == "reg":
             print("Running Euclidean")
