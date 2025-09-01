@@ -64,31 +64,14 @@ class CLD(nn.Module):
         if t[0].item()<0.1:
             G_inv = self.m_inv
 
-        # BEFORE
-        # beta = add_dimensions(8 * torch.sqrt(G), self.config.is_image)
-        # f = add_dimensions(2 * torch.sqrt(G), self.config.is_image)
-        # f = f.mean().item()
+        beta = add_dimensions(8 * torch.sqrt(G), self.config.is_image)
+        f = add_dimensions(2 * torch.sqrt(G), self.config.is_image)
+        f = f.mean().item()
 
-        # AFTER
-        beta_scalar = 8.0 * torch.sqrt(G)             # 0-D tensor (scalar)
-        f_scalar = 2.0 * torch.sqrt(G)                 # 0-D tensor (scalar)
+        print("G inverse", G_inv.shape)
+        print("beta", beta.shape)
 
-        # Build batch-shaped tensors for broadcasting
-        B = u.shape[0]
-        device = u.device
-        dtype = u.dtype
-
-        if self.config.is_image:
-            # shape: (B, 1, 1, 1) so it broadcasts over (B, C, H, W)
-            beta = beta_scalar.to(device=device, dtype=dtype).view(1, 1, 1, 1).expand(B, 1, 1, 1)
-        else:
-            # shape: (B, 1) so it broadcasts over (B, D)
-            beta = beta_scalar.to(device=device, dtype=dtype).view(1, 1).expand(B, 1)
-
-        # If you want f as a scalar for later arithmetic:
-        f = f_scalar.to(device=device, dtype=dtype)
-        f = f.item()  # keep scalar float like your original code expects
-
+        G_inv = G_inv.mean().item()
 
         drift_x = G_inv * beta * v
         drift_v = -beta * x - f * G_inv * beta * v
