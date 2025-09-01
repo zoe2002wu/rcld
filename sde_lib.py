@@ -67,9 +67,6 @@ class CLD(nn.Module):
         f = add_dimensions(2 * torch.sqrt(G), self.config.is_image)
         f = f.mean().item()
 
-        print("G inverse", G_inv.shape)
-        print("beta", beta.shape)
-
         G_inv = G_inv.mean().item()
 
         drift_x = G_inv * beta * v
@@ -78,11 +75,13 @@ class CLD(nn.Module):
         diffusion_x = torch.zeros_like(x)
         diffusion_v = torch.sqrt(2. * f * beta) * torch.ones_like(v)
 
+        print(f"t {t[0].item():.3f} x {x.var().item()} G {1/G_inv} beta {beta.mean().item()}")
+
         return torch.cat((drift_x, drift_v), dim=1), torch.cat((diffusion_x, diffusion_v), dim=1)
 
     def get_reverse_sde(self, score_fn=None, probability_flow=False):
         if self.config.riemann == "rie":
-            print("Running Riem")
+            print("Running Rie")
             sde_fn = self.rie_sde
         elif self.config.riemann == "reg":
             print("Running Euclidean")
