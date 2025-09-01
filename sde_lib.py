@@ -77,7 +77,7 @@ class CLD(nn.Module):
 
     def get_reverse_sde(self, score_fn=None, probability_flow=False):
         if self.riemann == True:
-            print("Running Riemann"
+            print("Running Riemann")
             sde_fn = self.rie_sde
         elif self.riemann == False:
             print("Running Euclidean")
