@@ -30,3 +30,6 @@ autocast_eval        = true
 sampling_method      = ode
 sampling_eps         = 1e-3
 denoising            = true
+
+#Riemann
+riemann              = true
