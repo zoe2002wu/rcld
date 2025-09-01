@@ -56,7 +56,7 @@ class CLD(nn.Module):
 
         x, v = torch.chunk(u, 2, dim=1)
 
-        var_xx, var_xv, var_vv = self.var_constant(t[0])
+        var_xx, var_xv, var_vv = self.var_constant(t)
         det = var_xx * var_vv - var_xv**2
         G = (var_vv**2 + var_xv**2) / det
         G_inv = 1 / G
@@ -66,6 +66,7 @@ class CLD(nn.Module):
 
         beta = add_dimensions(8 * torch.sqrt(G), self.config.is_image)
         f = add_dimensions(2 * torch.sqrt(G), self.config.is_image)
+        f = f.mean().item()
 
         print("G inverse", G_inv.shape)
         print("beta", beta.shape)
