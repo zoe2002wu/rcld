@@ -59,7 +59,6 @@ class CLD(nn.Module):
         var_xx, var_xv, var_vv = self.var_constant(t[0])
         det = var_xx * var_vv - var_xv**2
         G = (var_vv**2 + var_xv**2) / det
-        G = G.mean().item()
         G_inv = 1 / G
 
         if t[0].item()<0.1:
@@ -70,6 +69,8 @@ class CLD(nn.Module):
 
         print("G inverse", G_inv.shape)
         print("beta", beta.shape)
+
+        G_inv = G_inv.mean().item()
 
         drift_x = G_inv * beta * v
         drift_v = -beta * x - f * G_inv * beta * v
