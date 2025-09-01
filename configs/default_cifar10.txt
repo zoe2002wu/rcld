@@ -32,4 +32,4 @@ sampling_eps         = 1e-3
 denoising            = true
 
 #Riemann
-riemann              = true
+riemann              = rie

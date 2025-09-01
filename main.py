@@ -226,7 +226,7 @@ if __name__ == '__main__':
     p.add('--sampling_eps', type=float)
 
     # Riemann
-    p.add('--riemann', action='store_true')
+    p.add('--riemann', choice=["rie", "reg"], default='reg')
 
     # Likelihood
     p.add('--likelihood_solver', default='scipy_solver')
