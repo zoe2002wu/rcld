@@ -64,7 +64,7 @@ class CLD(nn.Module):
             G = (1/self.m_inv) * torch.ones_like(t)
             G_inv = self.m_inv * torch.ones_like(t)
 
-        beta = add_dimensions(8 * torch.sqrt(G), self.config.is_image)
+        beta = add_dimensions(6 * torch.sqrt(G), self.config.is_image)
         f = add_dimensions(2 * torch.sqrt(G), self.config.is_image)
         f = f.mean().item()
 
