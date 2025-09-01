@@ -67,6 +67,9 @@ class CLD(nn.Module):
         beta = add_dimensions(8 * torch.sqrt(G), self.config.is_image)
         f = add_dimensions(2 * torch.sqrt(G), self.config.is_image)
 
+        print("G inverse", G_inv.shape)
+        print("beta", beta.shape)
+
         drift_x = G_inv * beta * v
         drift_v = -beta * x - f * G_inv * beta * v
 
