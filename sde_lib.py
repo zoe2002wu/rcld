@@ -60,7 +60,7 @@ class CLD(nn.Module):
         G = (var_vv**2 + var_xv**2) / det
         G_inv = 1 / G
 
-        if t[0].item()<=0.5:
+        if t[0].item()<=self.config.stability_threshold:
             G = (1/self.m_inv) * torch.ones_like(t)
             G_inv = self.m_inv * torch.ones_like(t)
 

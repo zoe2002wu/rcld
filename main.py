@@ -227,6 +227,7 @@ if __name__ == '__main__':
 
     # Riemann
     p.add('--riemann', choice=["rie", "reg"], default='reg')
+    p.add('--stability_threshold', type=int, default=0.25)
 
     # Likelihood
     p.add('--likelihood_solver', default='scipy_solver')
