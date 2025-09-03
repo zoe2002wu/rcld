@@ -90,7 +90,7 @@ def run_inception_jit(inputs,
     else:
         inputs = tf.cast(inputs, tf.float32) / 255.
 
-    extractor = lambda x: inception_model(x, training=False)
+    extractor = inception_model(inputs, training=False)
 
     n = tf.shape(x)[0]
     global_bs = _compute_global_batch_size(n, num_batches)

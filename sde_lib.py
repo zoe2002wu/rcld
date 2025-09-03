@@ -75,8 +75,8 @@ class CLD(nn.Module):
 
         diffusion_x = torch.zeros_like(x)
         diffusion_v = torch.sqrt(2. * f * beta) * torch.ones_like(v)
-
-        print(f"t {t[0].item():.3f} x {x.var().item()} G {1/G_inv} beta {beta.mean().item()}")
+        
+        # print(f"t {t[0].item():.3f} x {x.var().item()} G {1/G_inv} beta {beta.mean().item()}")
 
         return torch.cat((drift_x, drift_v), dim=1), torch.cat((diffusion_x, diffusion_v), dim=1)
 
