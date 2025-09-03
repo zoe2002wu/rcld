@@ -20,6 +20,7 @@ import numpy as np
 import six
 import tensorflow as tf
 import tensorflow_hub as tfhub
+from tensorflow.keras.applications.inception_v3 import preprocess_input
 
 # INCEPTION_TFHUB = 'https://tfhub.dev/tensorflow/tfgan/eval/inception/1'
 # INCEPTION_OUTPUT = 'logits'
@@ -81,27 +82,28 @@ def _compute_global_batch_size(n: tf.Tensor, num_batches: int) -> tf.Tensor:
 
 @tf.function
 def run_inception_jit(inputs,
-                      inception_model,
-                      num_batches=1,
-                      inceptionv3=False):
-    """Running the inception network. Assuming input is within [0, 255]."""
-    if not inceptionv3:
-        inputs = (tf.cast(inputs, tf.float32) - 127.5) / 127.5
-    else:
-        inputs = tf.cast(inputs, tf.float32) / 255.
+                      inception_model: tf.keras.Model,
+                      num_batches: int = 1,
+                      inceptionv3: bool = True):  # kept for API parity; ignored
+    """Runs a Keras InceptionV3 model. `inputs` assumed in [0, 255]."""
+    # Preprocess for keras.applications.InceptionV3 (expects [-1, 1])
+    x = tf.cast(inputs, tf.float32)
+    x = preprocess_input(x)  # safe for images in [0, 255]
 
-    extractor = inception_model(inputs, training=False)
-
+    # Build dataset with ~num_batches global batches
     n = tf.shape(x)[0]
     global_bs = _compute_global_batch_size(n, num_batches)
     ds = tf.data.Dataset.from_tensor_slices(x).batch(global_bs, drop_remainder=False)
 
-    outputs = []
+    # Accumulate outputs in graph mode
+    ta = tf.TensorArray(tf.float32, size=0, dynamic_size=True)
+    i = tf.constant(0)
     for batch in ds:
-        y = extractor(batch)          # e.g., 2048-d pool3 for InceptionV3 feature_vector
-        outputs.append(y)
+        y = inception_model(batch, training=False)  # (B, 2048) if pooling='avg'
+        ta = ta.write(i, y)
+        i += 1
 
-    return tf.concat(outputs, axis=0)
+    return tf.concat(ta.stack(), axis=0)
 
 @tf.function
 def run_inception_distributed(input_tensor,
