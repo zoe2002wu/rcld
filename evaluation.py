@@ -21,24 +21,19 @@ import six
 import tensorflow as tf
 import tensorflow_gan as tfgan
 import tensorflow_hub as tfhub
+from typing import Union
 
-INCEPTION_TFHUB = 'https://tfhub.dev/tensorflow/tfgan/eval/inception/1'
-INCEPTION_OUTPUT = 'logits'
-INCEPTION_FINAL_POOL = 'pool_3'
-_DEFAULT_DTYPES = {
-    INCEPTION_OUTPUT: tf.float32,
-    INCEPTION_FINAL_POOL: tf.float32
-}
-INCEPTION_DEFAULT_IMAGE_SIZE = 299
-
+# INCEPTION_TFHUB = 'https://tfhub.dev/tensorflow/tfgan/eval/inception/1'
+# INCEPTION_OUTPUT = 'logits'
+# INCEPTION_FINAL_POOL = 'pool_3'
+# _DEFAULT_DTYPES = {
+#     INCEPTION_OUTPUT: tf.float32,
+#     INCEPTION_FINAL_POOL: tf.float32
+# }
+# INCEPTION_DEFAULT_IMAGE_SIZE = 299
 
 def get_inception_model(inceptionv3=False):
-    if inceptionv3:
-        return tfhub.load(
-            'https://tfhub.dev/google/imagenet/inception_v3/feature_vector/4')
-    else:
-        return tfhub.load(INCEPTION_TFHUB)
-
+    return tf.keras.applications.InceptionV3(include_top=False, weights='imagenet')
 
 def load_dataset_stats(config):
     """Load the pre-computed dataset statistics."""
@@ -82,6 +77,9 @@ def classifier_fn_from_tfhub(output_fields, inception_model,
 
     return _classifier_fn
 
+def _compute_global_batch_size(n: tf.Tensor, num_batches: int) -> tf.Tensor:
+    num_batches = tf.maximum(1, tf.cast(num_batches, tf.int32))
+    return tf.maximum(1, n // num_batches)
 
 @tf.function
 def run_inception_jit(inputs,
@@ -94,12 +92,18 @@ def run_inception_jit(inputs,
     else:
         inputs = tf.cast(inputs, tf.float32) / 255.
 
-    return tfgan.eval.run_classifier_fn(
-        inputs,
-        num_batches=num_batches,
-        classifier_fn=classifier_fn_from_tfhub(None, inception_model),
-        dtypes=_DEFAULT_DTYPES)
+    extractor = lambda x: inception_model(x, training=False)
 
+    n = tf.shape(x)[0]
+    global_bs = _compute_global_batch_size(n, num_batches)
+    ds = tf.data.Dataset.from_tensor_slices(x).batch(global_bs, drop_remainder=False)
+
+    outputs = []
+    for batch in ds:
+        y = extractor(batch)          # e.g., 2048-d pool3 for InceptionV3 feature_vector
+        outputs.append(y)
+
+    return tf.concat(outputs, axis=0)
 
 @tf.function
 def run_inception_distributed(input_tensor,
@@ -118,6 +122,8 @@ def run_inception_distributed(input_tensor,
       A dictionary with key `pool_3` and `logits`, representing the pool_3 and
         logits of the inception network respectively.
     """
+
+    
     num_tpus = jax.local_device_count()
     input_tensors = tf.split(input_tensor, num_tpus, axis=0)
     pool3 = []
