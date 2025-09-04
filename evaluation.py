@@ -77,26 +77,38 @@ def classifier_fn_from_tfhub(output_fields, inception_model,
     return _classifier_fn
 
 def _compute_global_batch_size(n: tf.Tensor, num_batches: int) -> tf.Tensor:
-    num_batches = tf.maximum(1, tf.cast(num_batches, tf.int32))
-    maximum = tf.maximum(1, n // num_batches)
-    return tf.cast(maximum, tf.int64) 
+    n = tf.cast(n, tf.int64)
+    num_batches = tf.cast(tf.maximum(1, num_batches), tf.int64)
+    return tf.maximum(tf.constant(1, tf.int64), n // num_batches)
 
 @tf.function
 def run_inception_jit(inputs,
                       inception_model: tf.keras.Model,
                       num_batches: int = 1,
-                      inceptionv3: bool = True):  # kept for API parity; ignored
-    """Runs a Keras InceptionV3 model. `inputs` assumed in [0, 255]."""
-    # Preprocess for keras.applications.InceptionV3 (expects [-1, 1])
+                      inceptionv3: bool = True):  # kept for API symmetry
+    """Runs a Keras InceptionV3 feature extractor. `inputs` in [0,255], NHWC."""
     x = tf.cast(inputs, tf.float32)
-    x = preprocess_input(x)  # safe for images in [0, 255]
 
-    # Build dataset with ~num_batches global batches
+    # ---- Ensure correct spatial size ----
+    # Prefer the model's declared input size; otherwise default to 299x299.
+    in_shape = getattr(inception_model, "input_shape", None)
+    if in_shape is not None and len(in_shape) == 4:
+        target_h = in_shape[1] if in_shape[1] is not None else 299
+        target_w = in_shape[2] if in_shape[2] is not None else 299
+    else:
+        target_h = 299
+        target_w = 299
+
+    x = tf.image.resize(x, (target_h, target_w), method="bilinear")  # no aspect ratio keep for FID
+
+    # ---- Preprocess for InceptionV3 ----
+    x = preprocess_input(x)  # maps [0,255] -> [-1,1]
+
+    # ---- Batch over ~num_batches chunks ----
     n = tf.shape(x)[0]
     global_bs = _compute_global_batch_size(n, num_batches)
     ds = tf.data.Dataset.from_tensor_slices(x).batch(global_bs, drop_remainder=False)
 
-    # Accumulate outputs in graph mode
     ta = tf.TensorArray(tf.float32, size=0, dynamic_size=True)
     i = tf.constant(0)
     for batch in ds:
