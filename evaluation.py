@@ -78,7 +78,7 @@ def classifier_fn_from_tfhub(output_fields, inception_model,
 
 def _compute_global_batch_size(n: tf.Tensor, num_batches: int) -> tf.Tensor:
     num_batches = tf.maximum(1, tf.cast(num_batches, tf.int32))
-    return tf.maximum(1, n // num_batches)
+    return tf.maximum(tf.constant(1, tf.int64), n // num_batches)
 
 @tf.function
 def run_inception_jit(inputs,
