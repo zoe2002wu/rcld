@@ -19,20 +19,26 @@ import jax
 import numpy as np
 import six
 import tensorflow as tf
+import tensorflow_gan as tfgan
 import tensorflow_hub as tfhub
-from tensorflow.keras.applications.inception_v3 import preprocess_input
 
-# INCEPTION_TFHUB = 'https://tfhub.dev/tensorflow/tfgan/eval/inception/1'
-# INCEPTION_OUTPUT = 'logits'
-# INCEPTION_FINAL_POOL = 'pool_3'
-# _DEFAULT_DTYPES = {
-#     INCEPTION_OUTPUT: tf.float32,
-#     INCEPTION_FINAL_POOL: tf.float32
-# }
-# INCEPTION_DEFAULT_IMAGE_SIZE = 299
+INCEPTION_TFHUB = 'https://tfhub.dev/tensorflow/tfgan/eval/inception/1'
+INCEPTION_OUTPUT = 'logits'
+INCEPTION_FINAL_POOL = 'pool_3'
+_DEFAULT_DTYPES = {
+    INCEPTION_OUTPUT: tf.float32,
+    INCEPTION_FINAL_POOL: tf.float32
+}
+INCEPTION_DEFAULT_IMAGE_SIZE = 299
+
 
 def get_inception_model(inceptionv3=False):
-    return tf.keras.applications.InceptionV3(include_top=False, weights='imagenet')
+    if inceptionv3:
+        return tfhub.load(
+            'https://tfhub.dev/google/imagenet/inception_v3/feature_vector/4')
+    else:
+        return tfhub.load(INCEPTION_TFHUB)
+
 
 def load_dataset_stats(config):
     """Load the pre-computed dataset statistics."""
@@ -76,47 +82,24 @@ def classifier_fn_from_tfhub(output_fields, inception_model,
 
     return _classifier_fn
 
-def _compute_global_batch_size(n: tf.Tensor, num_batches: int) -> tf.Tensor:
-    n = tf.cast(n, tf.int64)
-    num_batches = tf.cast(tf.maximum(1, num_batches), tf.int64)
-    return tf.maximum(tf.constant(1, tf.int64), n // num_batches)
 
 @tf.function
 def run_inception_jit(inputs,
-                      inception_model: tf.keras.Model,
-                      num_batches: int = 1,
-                      inceptionv3: bool = True):  # kept for API symmetry
-    """Runs a Keras InceptionV3 feature extractor. `inputs` in [0,255], NHWC."""
-    x = tf.cast(inputs, tf.float32)
-
-    # ---- Ensure correct spatial size ----
-    # Prefer the model's declared input size; otherwise default to 299x299.
-    in_shape = getattr(inception_model, "input_shape", None)
-    if in_shape is not None and len(in_shape) == 4:
-        target_h = in_shape[1] if in_shape[1] is not None else 299
-        target_w = in_shape[2] if in_shape[2] is not None else 299
+                      inception_model,
+                      num_batches=1,
+                      inceptionv3=False):
+    """Running the inception network. Assuming input is within [0, 255]."""
+    if not inceptionv3:
+        inputs = (tf.cast(inputs, tf.float32) - 127.5) / 127.5
     else:
-        target_h = 299
-        target_w = 299
+        inputs = tf.cast(inputs, tf.float32) / 255.
 
-    x = tf.image.resize(x, (target_h, target_w), method="bilinear")  # no aspect ratio keep for FID
+    return tfgan.eval.run_classifier_fn(
+        inputs,
+        num_batches=num_batches,
+        classifier_fn=classifier_fn_from_tfhub(None, inception_model),
+        dtypes=_DEFAULT_DTYPES)
 
-    # ---- Preprocess for InceptionV3 ----
-    x = preprocess_input(x)  # maps [0,255] -> [-1,1]
-
-    # ---- Batch over ~num_batches chunks ----
-    n = tf.shape(x)[0]
-    global_bs = _compute_global_batch_size(n, num_batches)
-    ds = tf.data.Dataset.from_tensor_slices(x).batch(global_bs, drop_remainder=False)
-
-    ta = tf.TensorArray(tf.float32, size=0, dynamic_size=True)
-    i = tf.constant(0)
-    for batch in ds:
-        y = inception_model(batch, training=False)  # (B, 2048) if pooling='avg'
-        ta = ta.write(i, y)
-        i += 1
-
-    return tf.concat(ta.stack(), axis=0)
 
 @tf.function
 def run_inception_distributed(input_tensor,
@@ -135,8 +118,6 @@ def run_inception_distributed(input_tensor,
       A dictionary with key `pool_3` and `logits`, representing the pool_3 and
         logits of the inception network respectively.
     """
-
-    
     num_tpus = jax.local_device_count()
     input_tensors = tf.split(input_tensor, num_tpus, axis=0)
     pool3 = []
